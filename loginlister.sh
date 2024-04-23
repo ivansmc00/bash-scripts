@@ -148,14 +148,19 @@ fi;
 
 if [ ! -f "$PROJECTNAME/$URLFILE" ]; then
 	TXT="$NC${BOLD}[#]$BLUE$BOLD Searching endpoints from domains provided with gau${NC}";
-	cat $1 | gau --providers wayback,commoncrawl,otx,urlscan --subs >> $PROJECTNAME/$TMPFILE &
+	{
+		for URL in $(cat $1); do
+			echo "$URL" | gau --providers wayback,commoncrawl,otx,urlscan --subs --o $PROJECTNAME/$TMPFILE
+		done;
+	} &
 	loading;
+	URL="";
 
 	TXT="$NC${BOLD}[#]$BLUE$BOLD Searching endpoints from domains provided with linkfinder${NC}";
 	{
-		cat $PROJECTNAME/$TMPFILE | awk -F"/" '{print $1,$2,$3}' | sed 's/ /\//g' | sed 's/:80//g' | awk -F"?" '{print $1}' | sed 's/ //g' | sort -u | httpx -silent -mc 200 >> $PROJECTNAME/tmp.txt
+		cat $PROJECTNAME/$TMPFILE | awk -F"/" '{print $1,$2,$3}' | sed 's/ /\//g' | sed 's/:80//g' | awk -F"?" '{print $1}' | sed 's/ //g' | sort -u >> $PROJECTNAME/tmp.txt
 		for URL in $(cat $PROJECTNAME/tmp.txt | sort -u); do
-			linkfinder -i $URL -d -o cli | egrep -v "against|http" | sed '/^$/d' | sed 's/^\.//' | sed 's/^[^/]/\/&/' | sed -e "s|^|$URL|" >> $PROJECTNAME/tmp2.txt
+			linkfinder -i "$URL" -d -o cli | egrep -v "against|http|Error:|Usage:|" | sed '/^$/d' | sed 's/^\.//' | sed 's/^[^/]/\/&/' | sed -e "s|^|$URL|" >> $PROJECTNAME/tmp2.txt
 		done;
 		cat $PROJECTNAME/tmp2.txt >> $PROJECTNAME/$TMPFILE;
 		cat $PROJECTNAME/$TMPFILE | sort -u  >> $PROJECTNAME/$URLFILE;
@@ -164,6 +169,7 @@ if [ ! -f "$PROJECTNAME/$URLFILE" ]; then
 	rm $PROJECTNAME/$TMPFILE
 	rm $PROJECTNAME/tmp.txt
 	rm $PROJECTNAME/tmp2.txt
+	URL="";
 else
 	echo -e "${BOLD}[$YELLOW${BOLD}!$NC${BOLD}] Endpoints have been obtained already ${NC}- $YELLOW${BOLD}SKIPPING${NC}";
 fi;

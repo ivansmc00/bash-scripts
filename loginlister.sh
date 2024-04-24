@@ -17,6 +17,7 @@ MAGENTA='\e[95m';
 BOLD='\033[1m';
 UNDERLINED='\e[4m';
 NC='\033[0m';
+GAU_TOML="$HOME/.gau.toml";
 SIMPLENAME="$(basename $1 | cut -d '.' -f1)";
 PROJECTNAME="loginlister_$SIMPLENAME";
 URLFILE="listurl_${SIMPLENAME}.txt";
@@ -40,6 +41,32 @@ This script create a simple file with all login pages found indexed in the domai
 
 EOF
 }
+
+
+#---------- GAU CONFIG ----------#
+
+
+cat << EOF > "$GAU_TOML"
+threads = 2
+verbose = false
+retries = 15
+subdomains = true
+parameters = false
+providers = ["wayback","commoncrawl","otx","urlscan"]
+blacklist = []
+json = false
+
+[urlscan]
+  apikey = "b49308e7-4d2d-46ce-af05-f37d39cef815"
+
+[filters]
+  from = ""
+  to = ""
+  matchstatuscodes = []
+  matchmimetypes = []
+  filterstatuscodes = []
+  filtermimetypes = []
+EOF
 
 
 #---------- LOADING FUNCTION ----------#
@@ -85,6 +112,13 @@ VERSION_VULN=$(echo $EXPLOIT | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?
 }
 
 
+stop_bg_ps() {
+    kill $(jobs -p) 2>/dev/null
+}
+
+trap 'stop_bg_ps; exit 1' SIGINT
+
+
 #---------- CHECK FOR SCRIPT RUNNING AS ROOT AND ONLY ONE POSITIONAL PARAMETER ----------#
 
 
@@ -110,12 +144,6 @@ if [[ -f "$1" ]]; then
 else
 	echo -e "\n${BOLD}[$RED${BOLD}-$NC${BOLD}] $1 is not a file${NC}" && exit;
 fi;
-
-
-#---------- CREATING FILE .gau.toml IF DON'T EXIST TO DELETE GAU WARNING ----------#
-
-
-([ ! -f "$HOME/.gau.toml" ]) && touch "$HOME/.gau.toml"; 
 
 
 #---------- DETECT FOR AN ALREADY EXISTING PROJECT AND PRESENCE OF resume.cfg FILE TO ----------#
@@ -148,13 +176,8 @@ fi;
 
 if [ ! -f "$PROJECTNAME/$URLFILE" ]; then
 	TXT="$NC${BOLD}[#]$BLUE$BOLD Searching endpoints from domains provided with gau${NC}";
-	{
-		for URL in $(cat $1); do
-			echo "$URL" | gau --providers wayback,commoncrawl,otx,urlscan --subs --o $PROJECTNAME/$TMPFILE
-		done;
-	} &
+	cat $1 | gau --o $PROJECTNAME/$TMPFILE &
 	loading;
-	URL="";
 
 	TXT="$NC${BOLD}[#]$BLUE$BOLD Searching endpoints from domains provided with linkfinder${NC}";
 	{

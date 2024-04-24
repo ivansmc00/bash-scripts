@@ -57,7 +57,7 @@ blacklist = []
 json = false
 
 [urlscan]
-  apikey = "b49308e7-4d2d-46ce-af05-f37d39cef815"
+  apikey = ""
 
 [filters]
   from = ""
